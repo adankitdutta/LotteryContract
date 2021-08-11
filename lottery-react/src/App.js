@@ -9,6 +9,7 @@ function App() {
   const [prize, setPrize] = useState("0");
   const [value, setValue] = useState("");
   const [message, setMessage] = useState("");
+  const [userAccount, setUserAccount] = useState("");
 
   useEffect(() => {
     const getContractDetails = async () => {
@@ -17,9 +18,11 @@ function App() {
       setNumberOfPlayers(players.length);
       const balance = await web3.eth.getBalance(lottery.options.address);
       setPrize(web3.utils.fromWei(balance, "ether"));
+      const user_accounts = await web3.eth.getAccounts();
+      setUserAccount(user_accounts[0]);
     };
     getContractDetails();
-  }, [numberOfPlayers, prize]);
+  }, []);
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -32,6 +35,10 @@ function App() {
       from: accounts[0],
       value: web3.utils.toWei(value, "ether"),
     });
+
+    setValue("");
+    setUserAccount(accounts[0]);
+
     const players = await lottery.methods.getPlayers().call();
     setNumberOfPlayers(players.length);
     const balance = await web3.eth.getBalance(lottery.options.address);
@@ -52,7 +59,8 @@ function App() {
     setNumberOfPlayers(players.length);
     const balance = await web3.eth.getBalance(lottery.options.address);
     setPrize(web3.utils.fromWei(balance, "ether"));
-    setMessage("A winner has been picked!");
+    const winner = await lottery.methods.lastWinner().call();
+    setMessage(`A winner has been picked! Winner Address - ${winner}`);
   };
 
   return (
@@ -62,15 +70,14 @@ function App() {
         This contract is managed by {manager} . There are currently{" "}
         {numberOfPlayers} peoples entered, competing for {prize} ethers !
       </p>
-
       <hr />
-
       <form onSubmit={handleSubmit}>
-        <h4>Want to try your luck?</h4>
+        <h3>Want to try your luck?</h3>
+        <h4>Your address of account to be used is: {userAccount} </h4>
         <div>
           <label>
             Amount of ether to enter (should be atleast 0.011 to enter the
-            competetion)
+            competetion):{" "}
           </label>
           <input
             required
@@ -81,9 +88,13 @@ function App() {
         <button>Enter</button>
       </form>
       <hr />
-      <h4>Ready to pick a winner?</h4>
-      <button onClick={buttonClick}>Pick a winner!</button>
-      <hr />
+      {manager === userAccount && numberOfPlayers !== 0 && (
+        <div>
+          <h4>Ready to pick a winner?</h4>
+          <button onClick={buttonClick}>Pick a winner!</button>
+          <hr />
+        </div>
+      )}
       <h1>{message} </h1>
     </div>
   );
